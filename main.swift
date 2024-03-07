@@ -22,16 +22,20 @@ guard FileManager.default.fileExists(atPath: file) else {
 let width = Int(try shell("identify -format '%w' \(file)"))!
 let height = Int(try shell("identify -format '%h' \(file)"))!
 let min = width < height ? width : height
+let power = 9 // 512
+let res = 2 << (power - 1)
 
 try shell("convert \(file) -gravity center -extent \(min)x\(min) square.ppm")
-try shell("convert -size 512x512 xc: \(file).ppm")
+try shell("convert -size \(res)x\(res) xc: \(file).ppm")
 
 var yposition = 0
-for i in (0...8).reversed() {
-    let yscale = 1 << i
+var yscale = res
+for _ in 1...power {
+    yscale /= 2
     var xposition = 0
-    for j in (0...8).reversed() {
-        let xscale = 1 << j
+    var xscale = res
+    for _ in 1...power {
+        xscale /= 2
         try shell("convert \(file).ppm square.ppm -geometry \(xscale)x\(yscale)!+\(xposition)+\(yposition) -composite -depth 8 \(file).ppm")
         xposition += xscale
     }
